@@ -1,0 +1,135 @@
+{
+  "tabs": [
+    {
+      "id": "daily",
+      "label": "Daily",
+      "style": "b-dark",
+      "sections": [
+        {
+          "title": "Infrastructure",
+          "links": [
+            { "label": "Email", "href": "https://mail.google.com/" },
+            { "label": "Drive", "href": "https://drive.google.com/" },
+            { "label": "Calendar", "href": "https://calendar.google.com/" },
+            { "label": "Photos", "href": "https://photos.google.com/" },
+            { "label": "Tasks", "href": "https://tasks.google.com/" },
+            { "label": "YouTube", "href": "https://youtube.com/" }
+          ]
+        },
+        {
+          "title": "Marketplace",
+          "links": [
+            { "label": "Vinted", "href": "https://www.vinted.com/" },
+            { "label": "Marktplaats", "href": "https://www.marktplaats.nl/" }
+          ]
+        },
+        {
+          "title": "AI Assistants",
+          "links": [
+            { "label": "ChatGPT", "href": "https://chatgpt.com/" },
+            { "label": "Claude", "href": "https://claude.ai/" },
+            { "label": "Gemini", "href": "https://gemini.google.com/" },
+            { "label": "NotebookLM", "href": "https://notebooklm.google.com/" },
+            { "label": "Copilot", "href": "https://copilot.microsoft.com/" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "learn",
+      "label": "Learn",
+      "style": "b-brand",
+      "sections": [
+        {
+          "title": "Courses",
+          "links": [
+            { "label": "MOOC.fi", "href": "https://www.mooc.fi/en/" },
+            { "label": "FutureLearn", "href": "https://www.futurelearn.com/" },
+            { "label": "Khan Academy", "href": "https://www.khanacademy.org/" },
+            { "label": "OU Dutch", "href": "https://login.ou.nl/" },
+            { "label": "OU English", "href": "https://www.open.edu/openlearn/" }
+          ]
+        },
+        {
+          "title": "Research",
+          "links": [
+            { "label": "Google Scholar", "href": "https://scholar.google.com/" },
+            { "label": "ResearchGate", "href": "https://www.researchgate.net/" }
+          ]
+        },
+        {
+          "title": "Languages",
+          "links": [
+            { "label": "Hancom Taja (Korean)", "href": "https://tt.hancomtaja.com/en" },
+            { "label": "LingoDeer", "href": "https://www.lingodeer.com/" },
+            { "label": "LingQ", "href": "https://www.lingq.com/" },
+            { "label": "TTMIK", "href": "https://courses.talktomeinkorean.com/" },
+            { "label": "OU Latin", "href": "https://www.open.edu/openlearn/history-the-arts/getting-started-on-classical-latin/content-section-0" },
+            { "label": "Duolingo", "href": "https://www.duolingo.com/lesson" },
+            { "label": "Busuu (Swedish)", "href": "https://www.busuu.com/" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "create",
+      "label": "Create",
+      "style": "b-accent",
+      "sections": [
+        {
+          "title": "Music",
+          "links": [
+            { "label": "Strudel", "href": "https://strudel.cc/" },
+            { "label": "JazzGuitar", "href": "https://jazzguitar.be/" },
+            { "label": "SoundCloud", "href": "https://soundcloud.com/" },
+            { "label": "Bandcamp", "href": "https://bandcamp.com/" }
+          ]
+        },
+        {
+          "title": "Writing",
+          "links": [
+            { "label": "Notion", "href": "https://www.notion.so/" },
+            { "label": "Google Docs", "href": "https://docs.google.com/" },
+            { "label": "Reedsy", "href": "https://reedsy.com/" }
+          ]
+        },
+        {
+          "title": "Visual",
+          "links": [
+            { "label": "Behance", "href": "https://www.behance.net/" }
+          ]
+        },
+        {
+          "title": "Harmonic Works",
+          "links": [
+            { "label": "Your Website", "href": "https://harmonicworks.org" },
+            { "label": "GitHub", "href": "https://github.com/harmonicworks" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "explore",
+      "label": "Explore",
+      "style": "b-music",
+      "sections": [
+        {
+          "title": "Background",
+          "links": [
+            { "label": "YouTube Music", "href": "https://music.youtube.com/" },
+            { "label": "SoundCloud", "href": "https://soundcloud.com/" },
+            { "label": "Bandcamp", "href": "https://bandcamp.com/" }
+          ]
+        },
+        {
+          "title": "Read & Discover",
+          "links": [
+            { "label": "Medium", "href": "https://medium.com/" },
+            { "label": "Wikipedia", "href": "https://www.wikipedia.org/" },
+            { "label": "TED", "href": "https://www.ted.com/" }
+          ]
+        }
+      ]
+    }
+  ]
+}
