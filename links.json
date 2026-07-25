@@ -29,7 +29,6 @@
             { "label": "ChatGPT", "href": "https://chatgpt.com/" },
             { "label": "Claude", "href": "https://claude.ai/" },
             { "label": "Gemini", "href": "https://gemini.google.com/" },
-            { "label": "NotebookLM", "href": "https://notebooklm.google.com/" },
             { "label": "Copilot", "href": "https://copilot.microsoft.com/" }
           ]
         }
@@ -80,7 +79,6 @@
           "title": "Music",
           "links": [
             { "label": "Strudel", "href": "https://strudel.cc/" },
-            { "label": "JazzGuitar", "href": "https://jazzguitar.be/" },
             { "label": "SoundCloud", "href": "https://soundcloud.com/" },
             { "label": "Bandcamp", "href": "https://bandcamp.com/" }
           ]
@@ -118,15 +116,17 @@
           "links": [
             { "label": "YouTube Music", "href": "https://music.youtube.com/" },
             { "label": "SoundCloud", "href": "https://soundcloud.com/" },
-            { "label": "Bandcamp", "href": "https://bandcamp.com/" }
+            { "label": "Bandcamp", "href": "https://bandcamp.com/" },
+            { "label": "Qobuz", "href": "https://www.qobuz.com/" }
           ]
         },
         {
           "title": "Read & Discover",
           "links": [
-            { "label": "Medium", "href": "https://medium.com/" },
             { "label": "Wikipedia", "href": "https://www.wikipedia.org/" },
-            { "label": "TED", "href": "https://www.ted.com/" }
+            { "label": "Purdue OWL", "href": "https://owl.purdue.edu/" },
+            { "label": "Scribbr", "href": "https://www.scribbr.com/" },
+            { "label": "Semantic Scholar", "href": "https://www.semanticscholar.org/" }
           ]
         }
       ]
