@@ -13,7 +13,8 @@
             { "label": "Calendar", "href": "https://calendar.google.com/" },
             { "label": "Photos", "href": "https://photos.google.com/" },
             { "label": "Tasks", "href": "https://tasks.google.com/" },
-            { "label": "YouTube", "href": "https://youtube.com/" }
+            { "label": "YouTube", "href": "https://youtube.com/" },
+            { "label": "🎬 Media Player", "href": "http://127.0.0.1:8734/" }
           ]
         },
         {
