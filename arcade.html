@@ -147,6 +147,13 @@ input,select{
   .wrap{ margin:12px auto }
   #player .bar .hint{ display:none }
 }
+/* Phone held sideways: slim bar so the game gets the room */
+@media (max-height:500px){
+  #player .bar{ padding:4px 10px }
+  #player .bar .hint{ display:none }
+  #player .bar .pname{ font-size:14px }
+  #player .bar button{ padding:6px 12px; font-size:13px; border-radius:10px }
+}
 </style>
 </head>
 <body>
@@ -563,6 +570,7 @@ async function play(id) {
     autoStart: true,
     theme: "dark",
     thinSidebar: true,
+    kiosk: isTouch, // on phones the D-pad replaces the emulator's own sidebar and keyboard
     mouseCapture: false,
     fsChanges: { local: false },
     onEvent: (ev, arg) => { if (ev === "ci-ready") ci = arg; },
