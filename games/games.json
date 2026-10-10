@@ -1,3 +1,6 @@
 {
-  "games": []
+  "games": [
+    { "file": "skyroads.zip", "title": "SkyRoads", "exe": "SKYROADS.EXE" },
+    { "file": "scorch15.zip", "title": "Scorched Earth", "exe": "SCORCH.EXE" }
+  ]
 }
