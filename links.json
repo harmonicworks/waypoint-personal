@@ -131,6 +131,20 @@
           ]
         }
       ]
+    },
+    {
+      "id": "play",
+      "label": "Entertainment",
+      "style": "b-play",
+      "sections": [
+        {
+          "title": "Retro Games",
+          "links": [
+            { "label": "🕹️ DOS Arcade", "href": "arcade.html" },
+            { "label": "Internet Archive: MS-DOS Shareware", "href": "https://archive.org/details/softwarelibrary_msdos_shareware" }
+          ]
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arcade · Waypoint</title>
+<!-- js-dos = DOSBox for the browser. JSZip = reads the game zips. Code libraries only, no ads. -->
+<link rel="stylesheet" href="https://v8.js-dos.com/latest/js-dos.css">
+<script src="https://v8.js-dos.com/latest/js-dos.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --bg:#0f1115;
+  --panel:#171a21;
+  --tile:#1b202a;
+  --line:#262c38;
+  --muted:#aab1c7;
+  --text:#e6e8ef;
+  --brand:#7aa2ff;
+  --play:#c9a0ff;
+  --danger:#ff6b6b;
+  --br:16px;
+  --shadow:0 8px 24px rgba(0,0,0,.28);
+}
+*{ box-sizing:border-box }
+html,body{ margin:0; height:100%; background:var(--bg) }
+body{ font-family:system-ui; background:var(--bg); color:var(--text) }
+
+.wrap{ max-width:1000px; margin:32px auto; padding:16px }
+header{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px }
+.title{ font-size:24px; font-weight:800 }
+.sub{ color:var(--muted); font-size:14px }
+.back{ color:var(--muted); text-decoration:none; font-weight:600; font-size:14px }
+.back:hover{ color:var(--brand) }
+
+.panel{ background:var(--panel); border-radius:var(--br); padding:16px; box-shadow:var(--shadow); margin-bottom:12px }
+.panel-head{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px }
+.panel-head h2{ margin:0; font-size:15px; color:var(--muted); font-weight:600 }
+
+button{
+  font:inherit; font-size:14px; font-weight:700; cursor:pointer;
+  border:0; border-radius:12px; padding:9px 14px;
+  background:var(--tile); color:var(--text);
+}
+button:hover{ filter:brightness(1.15) }
+button.play{ background:var(--play); color:#000 }
+button.danger{ color:var(--danger) }
+button:disabled{ opacity:.5; cursor:default }
+
+.grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px }
+.card{ background:var(--tile); border-radius:14px; overflow:hidden; display:flex; flex-direction:column }
+.cover{
+  aspect-ratio:4/3; display:grid; place-items:center; position:relative; cursor:pointer;
+  font:800 34px/1 ui-monospace,"SF Mono",Menlo,monospace; letter-spacing:.05em; color:rgba(255,255,255,.92);
+}
+.cover::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px);
+}
+.cover .hover{
+  position:absolute; inset:0; display:grid; place-items:center; z-index:1; opacity:0;
+  background:rgba(0,0,0,.45); font:700 15px system-ui; transition:opacity .15s;
+}
+.cover:hover .hover{ opacity:1 }
+.meta{ padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px }
+.meta .name{ font-weight:600; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.meta .info{ color:var(--muted); font-size:12px; margin-top:2px }
+.meta button{ padding:6px 9px; flex:none }
+
+.note{ color:var(--muted); font-size:14px; line-height:1.6; margin:4px 0 0 }
+.note code{ background:var(--tile); padding:1px 5px; border-radius:6px }
+.empty{ border:2px dashed var(--line); border-radius:14px; padding:28px 16px; text-align:center }
+
+body.dragging::after{
+  content:"Drop .zip files to add them to this device";
+  position:fixed; inset:12px; border:3px dashed var(--play); border-radius:16px;
+  display:grid; place-items:center; background:rgba(15,17,21,.9);
+  font:700 18px system-ui; color:var(--play); z-index:50; text-align:center; padding:16px;
+}
+
+/* Player */
+#player{ position:fixed; inset:0; background:#000; display:none; flex-direction:column; z-index:40 }
+#player.open{ display:flex }
+#player .bar{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; background:var(--panel) }
+#player .bar .pname{ font-weight:700 }
+#player .bar .hint{ color:var(--muted); font-size:12px; margin-left:10px }
+#player .bar .actions{ display:flex; gap:8px }
+#dos-host{ flex:1; position:relative; min-height:0 }
+#dos-host > div{ width:100%; height:100% }
+
+/* Settings dialog */
+dialog{
+  background:var(--panel); color:var(--text); border:0; border-radius:var(--br);
+  padding:0; width:min(480px,calc(100vw - 24px)); box-shadow:var(--shadow);
+}
+dialog::backdrop{ background:rgba(0,0,0,.6) }
+dialog form{ padding:20px }
+dialog h3{ margin:0 0 6px; font-size:18px }
+label{ display:block; font-size:13px; color:var(--muted); margin:14px 0 6px }
+input,select{
+  width:100%; font:inherit; font-size:14px; color:var(--text); background:var(--bg);
+  border:1px solid var(--line); border-radius:10px; padding:9px 10px;
+}
+.help{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.5 }
+.warn{ font-size:12px; color:var(--play); margin-top:6px; line-height:1.5 }
+.dialog-actions{ display:flex; justify-content:space-between; gap:8px; margin-top:20px; flex-wrap:wrap }
+.dialog-actions .right{ display:flex; gap:8px; margin-left:auto }
+
+#toast{
+  position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:60;
+  background:var(--tile); padding:10px 16px; border-radius:12px; font-size:14px;
+  opacity:0; transition:opacity .2s; pointer-events:none; box-shadow:var(--shadow);
+}
+#toast.show{ opacity:1 }
+
+@media (max-width:600px){
+  .wrap{ margin:12px auto }
+  #player .bar .hint{ display:none }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="title">Arcade</div>
+      <div class="sub">Shareware &amp; freeware DOS games</div>
+    </div>
+    <a class="back" href="index.html">← Waypoint</a>
+  </header>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Shelf</h2></div>
+    <div id="repoShelf"><p class="note">Loading games…</p></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>On this device only</h2>
+      <button id="addBtn">+ Add zip</button>
+      <input type="file" id="fileInput" accept=".zip" multiple hidden>
+    </div>
+    <div id="localShelf"></div>
+  </section>
+
+</div>
+
+<div id="player">
+  <div class="bar">
+    <div><span class="pname" id="playerTitle"></span><span class="hint">Click the screen to capture the mouse</span></div>
+    <div class="actions">
+      <button id="fsBtn">Fullscreen</button>
+      <button class="play" id="exitBtn">Save &amp; exit</button>
+    </div>
+  </div>
+  <div id="dos-host"></div>
+</div>
+
+<dialog id="editDialog">
+  <form id="editForm">
+    <h3 id="editHeading">Game settings</h3>
+    <div class="help" id="editScope"></div>
+
+    <label for="fTitle">Title</label>
+    <input id="fTitle" required>
+
+    <label for="fExe">Program to start</label>
+    <select id="fExe"></select>
+    <div class="help">Setup and install programs are usually not the game itself.</div>
+    <div class="warn" id="exeWarn" hidden></div>
+
+    <label for="fSpeed">CPU speed</label>
+    <select id="fSpeed">
+      <option value="auto">Auto (works for most games)</option>
+      <option value="fast">Fast (3D games like Doom and Heretic)</option>
+      <option value="slow">Slow (very old games that run too fast)</option>
+      <option value="custom">Custom cycles…</option>
+    </select>
+    <div id="customWrap" hidden>
+      <label for="fCycles">Cycles (lower is slower; 3000 is roughly a 286)</label>
+      <input id="fCycles" type="number" min="100" step="100" value="3000">
+    </div>
+
+    <div class="dialog-actions">
+      <div>
+        <button type="button" class="danger" id="removeBtn">Remove</button>
+        <button type="button" id="clearSavesBtn">Clear saves</button>
+      </div>
+      <div class="right">
+        <button type="button" id="cancelBtn">Cancel</button>
+        <button type="submit" class="play" id="saveBtn">Save</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+/* ===== Where the shared games live ===================================== */
+const REPO = { owner: "harmonicworks", repo: "waypoint-personal", branch: "main", folder: "games" };
+
+/* ===== Browser storage (per device) ====================================
+   "local": zips added on this device only
+   "state": per-game settings you changed on this device, plus save games */
+let dbPromise = null;
+function openDB() {
+  if (!dbPromise) dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open("waypoint-arcade", 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore("local", { keyPath: "id" });
+      req.result.createObjectStore("state", { keyPath: "id" });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return dbPromise;
+}
+async function tx(store, mode, fn) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction(store, mode);
+    const req = fn(t.objectStore(store));
+    t.oncomplete = () => resolve(req ? req.result : undefined);
+    t.onerror = () => reject(t.error);
+    t.onabort = () => reject(t.error);
+  });
+}
+const db = {
+  all: s => tx(s, "readonly", o => o.getAll()),
+  get: (s, id) => tx(s, "readonly", o => o.get(id)),
+  put: (s, v) => tx(s, "readwrite", o => o.put(v)),
+  del: (s, id) => tx(s, "readwrite", o => o.delete(id)),
+};
+
+/* ===== Helpers ========================================================= */
+const byId = id => document.getElementById(id);
+function toast(msg, ms = 2600) {
+  const t = byId("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), ms);
+}
+const uid = () => (self.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+const prettyTitle = f => f.replace(/\.zip$/i, "").replace(/[_\-.]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, c => c.toUpperCase());
+function initials(t) { const w = t.split(/\s+/).filter(Boolean); return (w.length > 1 ? w[0][0] + w[1][0] : t.slice(0, 2)).toUpperCase(); }
+function hue(s) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
+const fmtSize = b => !b ? "" : b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1e3)) + " KB";
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const isJunk = n => n.startsWith("__MACOSX/") || /(^|\/)\.DS_Store$/.test(n);
+
+function listExes(zip) {
+  return Object.keys(zip.files)
+    .filter(n => !zip.files[n].dir && !isJunk(n) && /\.(exe|com|bat)$/i.test(n) && !/^cd\//i.test(n))
+    .sort();
+}
+function guessExe(exes, title) {
+  if (!exes.length) return "";
+  const key = title.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 4);
+  const bad = /(setup|setsound|install|instal|uninst|config|deice|readme|patch|order|catalog|ipxsetup|sersetup|vendor|help|info)/i;
+  let best = exes[0], bestScore = -Infinity;
+  for (const path of exes) {
+    const file = path.split("/").pop().toLowerCase();
+    const base = file.replace(/\.(exe|com|bat)$/, "");
+    let score = 0;
+    if (bad.test(base)) score -= 10;
+    if (key && base.startsWith(key)) score += 6;
+    if (key && key.startsWith(base.slice(0, 3))) score += 2;
+    if (file.endsWith(".exe")) score += 2; else if (file.endsWith(".com")) score += 1;
+    score -= path.split("/").length - 1;
+    if (score > bestScore) { bestScore = score; best = path; }
+  }
+  return best;
+}
+function dosPathProblem(path) {
+  if (!path) return "";
+  const odd = path.split("/").some(p => /\s/.test(p) || p.replace(/\.[^.]*$/, "").length > 8);
+  return odd ? "Long or spaced names confuse old DOS. If the game doesn't start, pick \"Just open the DOS prompt\" and type DIR to look around." : "";
+}
+
+/* ===== Building the game list ========================================== */
+let games = [];        // merged view of everything shown
+let shelfConfig = {};  // games/games.json, keyed by file name
+
+async function loadRepoGames() {
+  // Optional settings file next to the zips.
+  try {
+    const r = await fetch(`${REPO.folder}/games.json`, { cache: "no-cache" });
+    if (r.ok) for (const g of ((await r.json()).games || [])) if (g.file) shelfConfig[g.file] = g;
+  } catch {}
+
+  // Every .zip in the games folder shows up automatically.
+  let files = [];
+  try {
+    const api = `https://api.github.com/repos/${REPO.owner}/${REPO.repo}/contents/${REPO.folder}?ref=${REPO.branch}`;
+    const r = await fetch(api);
+    if (!r.ok) throw new Error(r.status);
+    files = (await r.json())
+      .filter(f => f.type === "file" && /\.zip$/i.test(f.name))
+      .map(f => ({ name: f.name, size: f.size, download: f.download_url }));
+  } catch {
+    // GitHub's listing can be rate-limited; fall back to games.json.
+    files = Object.keys(shelfConfig).map(name => ({ name, size: 0, download: null }));
+  }
+  return files.map(f => {
+    const c = shelfConfig[f.name] || {};
+    return {
+      id: "repo:" + f.name, source: "repo", file: f.name, download: f.download, size: f.size,
+      title: c.title || prettyTitle(f.name), exe: c.exe ?? null,
+      speed: c.speed || "auto", cycles: c.cycles || 3000,
+    };
+  });
+}
+
+async function refresh() {
+  const [repo, locals, states] = await Promise.all([loadRepoGames(), db.all("local"), db.all("state")]);
+  const state = Object.fromEntries(states.map(s => [s.id, s]));
+  const localGames = locals.map(l => ({
+    id: l.id, source: "local", size: l.size, title: prettyTitle(l.name),
+    exe: null, speed: "auto", cycles: 3000, added: l.added,
+  }));
+  games = [...repo, ...localGames].map(g => ({ ...g, ...(state[g.id] || {}) }));
+  render();
+}
+
+function cardHtml(g) {
+  const h = hue(g.title);
+  const info = [fmtSize(g.size), g.saves ? "saved" : ""].filter(Boolean).join(" · ");
+  return `
+    <div class="card">
+      <div class="cover" data-play="${esc(g.id)}" style="background:linear-gradient(135deg,hsl(${h} 45% 32%),hsl(${(h + 40) % 360} 50% 15%))">
+        ${esc(initials(g.title))}<div class="hover">▶ Play</div>
+      </div>
+      <div class="meta">
+        <div style="min-width:0">
+          <div class="name" title="${esc(g.title)}">${esc(g.title)}</div>
+          <div class="info">${esc(info)}</div>
+        </div>
+        <button data-edit="${esc(g.id)}" title="Settings" aria-label="Settings for ${esc(g.title)}">⚙</button>
+      </div>
+    </div>`;
+}
+function render() {
+  const repo = games.filter(g => g.source === "repo").sort((a, b) => a.title.localeCompare(b.title));
+  const local = games.filter(g => g.source === "local").sort((a, b) => a.title.localeCompare(b.title));
+  byId("repoShelf").innerHTML = repo.length
+    ? `<div class="grid">${repo.map(cardHtml).join("")}</div>`
+    : `<div class="empty note">No games on the shelf yet.<br>Upload shareware or freeware <code>.zip</code> files to the <code>games</code> folder in the repo and they appear here on every device.</div>`;
+  byId("localShelf").innerHTML = local.length
+    ? `<div class="grid">${local.map(cardHtml).join("")}</div>`
+    : `<p class="note">Drag a <code>.zip</code> here to try a game privately on this device, without putting it in the repo.</p>`;
+}
+document.addEventListener("click", e => {
+  const p = e.target.closest("[data-play]"); if (p) return play(p.dataset.play);
+  const ed = e.target.closest("[data-edit]"); if (ed) return openEditor(ed.dataset.edit);
+});
+
+/* ===== Getting a game's zip ============================================ */
+const zipCache = new Map();
+async function getZip(g) {
+  if (zipCache.has(g.id)) return zipCache.get(g.id);
+  let data;
+  if (g.source === "local") {
+    const rec = await db.get("local", g.id);
+    if (!rec) throw new Error("missing");
+    data = rec.blob;
+  } else {
+    let r = await fetch(`${REPO.folder}/${encodeURIComponent(g.file)}`).catch(() => null);
+    if ((!r || !r.ok) && g.download) r = await fetch(g.download);
+    if (!r || !r.ok) throw new Error("download failed");
+    data = await r.arrayBuffer();
+  }
+  const zip = await JSZip.loadAsync(data);
+  zipCache.set(g.id, zip);
+  return zip;
+}
+
+/* ===== Adding device-only games ======================================== */
+async function addLocal(file) {
+  if (!/\.zip$/i.test(file.name)) { toast(`Skipped ${file.name}: only .zip files`); return; }
+  try { await JSZip.loadAsync(file); } catch { toast(`${file.name} isn't a valid zip`); return; }
+  await db.put("local", { id: uid(), name: file.name, blob: file, size: file.size, added: Date.now() });
+  toast(prettyTitle(file.name) + " added to this device");
+}
+async function addFiles(list) { for (const f of list) await addLocal(f); refresh(); }
+byId("addBtn").onclick = () => byId("fileInput").click();
+byId("fileInput").onchange = e => { addFiles([...e.target.files]); e.target.value = ""; };
+let dragDepth = 0;
+addEventListener("dragenter", e => { if (current) return; e.preventDefault(); dragDepth++; document.body.classList.add("dragging"); });
+addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove("dragging"); } });
+addEventListener("dragover", e => e.preventDefault());
+addEventListener("drop", e => {
+  e.preventDefault(); dragDepth = 0; document.body.classList.remove("dragging");
+  if (!current) addFiles([...e.dataTransfer.files]);
+});
+
+/* ===== Settings dialog ================================================= */
+let editing = null;
+async function openEditor(id) {
+  const g = games.find(x => x.id === id);
+  if (!g) return;
+  let exes = [];
+  try { exes = listExes(await getZip(g)); } catch { toast("Couldn't open this game's zip"); return; }
+  editing = g;
+  byId("editHeading").textContent = g.title;
+  byId("editScope").textContent = g.source === "repo"
+    ? "Changes here apply to this device only. For every device, edit games/games.json in the repo."
+    : "This game lives only on this device.";
+  byId("fTitle").value = g.title;
+  const cur = g.exe ?? guessExe(exes, g.title);
+  byId("fExe").innerHTML = exes.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("") + `<option value="">Just open the DOS prompt</option>`;
+  byId("fExe").value = exes.includes(cur) ? cur : "";
+  byId("fSpeed").value = g.speed || "auto";
+  byId("fCycles").value = g.cycles || 3000;
+  syncEditor();
+  byId("removeBtn").hidden = g.source !== "local";
+  byId("clearSavesBtn").hidden = !g.saves;
+  byId("editDialog").showModal();
+}
+function syncEditor() {
+  byId("customWrap").hidden = byId("fSpeed").value !== "custom";
+  const w = dosPathProblem(byId("fExe").value);
+  byId("exeWarn").hidden = !w; byId("exeWarn").textContent = w;
+}
+async function patchState(id, patch) {
+  const s = (await db.get("state", id)) || { id };
+  Object.assign(s, patch);
+  await db.put("state", s);
+}
+byId("fSpeed").onchange = syncEditor;
+byId("fExe").onchange = syncEditor;
+byId("cancelBtn").onclick = () => byId("editDialog").close();
+byId("editForm").onsubmit = async e => {
+  e.preventDefault();
+  await patchState(editing.id, {
+    title: byId("fTitle").value.trim() || editing.title,
+    exe: byId("fExe").value,
+    speed: byId("fSpeed").value,
+    cycles: Math.max(100, parseInt(byId("fCycles").value, 10) || 3000),
+  });
+  byId("editDialog").close(); toast("Saved"); refresh();
+};
+byId("removeBtn").onclick = async () => {
+  if (!confirm(`Remove ${editing.title} and its saves from this device?`)) return;
+  await db.del("local", editing.id); await db.del("state", editing.id); zipCache.delete(editing.id);
+  byId("editDialog").close(); toast("Removed"); refresh();
+};
+byId("clearSavesBtn").onclick = async () => {
+  if (!confirm("Clear saved progress for this game on this device?")) return;
+  await patchState(editing.id, { saves: null });
+  byId("clearSavesBtn").hidden = true; toast("Saves cleared"); refresh();
+};
+
+/* ===== DOSBox config ===================================================
+   A folder called CD at the top of the zip is mounted as a CD-ROM (D:). */
+function buildConf(g, exe, hasCd) {
+  const cycles = g.speed === "fast" ? "max" : g.speed === "slow" ? "fixed 3000"
+    : g.speed === "custom" ? `fixed ${g.cycles}` : "auto";
+  const auto = ["@echo off", "mount c .", ...(hasCd ? ["mount d CD -t cdrom"] : []), "c:"];
+  if (exe) {
+    const parts = exe.split("/"); const file = parts.pop();
+    if (parts.length) auto.push("cd \\" + parts.join("\\"));
+    auto.push((/\.bat$/i.test(file) ? "call " : "") + file);
+  } else auto.push("dir /w");
+  return ["[sdl]", "autolock=true", "",
+    "[dosbox]", "machine=svga_s3", "memsize=16", "",
+    "[cpu]", "core=auto", "cputype=auto", `cycles=${cycles}`, "",
+    "[mixer]", "rate=44100", "",
+    "[sblaster]", "sbtype=sb16", "",
+    "[autoexec]", ...auto, ""].join("\n");
+}
+
+/* ===== Saves: keep only the files a game changed ======================= */
+function sameBytes(a, b) {
+  if (!a || !b || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+async function mergeSaves(original, oldBytes, newBytes) {
+  // Collect old saves, then newer files; drop anything identical to the original game.
+  const files = new Map();
+  for (const bytes of [oldBytes, newBytes]) {
+    if (!bytes) continue;
+    const z = await JSZip.loadAsync(bytes);
+    for (const [n, e] of Object.entries(z.files)) {
+      if (e.dir || n.startsWith(".jsdos/") || isJunk(n)) continue;
+      files.set(n, await e.async("uint8array"));
+    }
+  }
+  const out = new JSZip();
+  for (const [n, data] of files) {
+    const orig = original.file(n) || (/^CD\//.test(n) ? original.file(n.replace(/^CD\//, "cd/")) : null);
+    if (orig && sameBytes(await orig.async("uint8array"), data)) continue;
+    out.file(n, data);
+  }
+  return Object.keys(out.files).length ? out.generateAsync({ type: "uint8array" }) : null;
+}
+
+/* ===== Playing ========================================================= */
+let current = null;
+async function play(id) {
+  if (current) return;
+  if (typeof Dos === "undefined" || typeof JSZip === "undefined") { toast("The emulator didn't load. Check your connection and reload."); return; }
+  const g = games.find(x => x.id === id);
+  if (!g) return;
+  toast("Loading " + g.title + "…", 2000);
+  let zip;
+  try { zip = await getZip(g); } catch { toast("Couldn't load " + g.title); return; }
+
+  const initFs = [];
+  let hasCd = false;
+  for (const [name, entry] of Object.entries(zip.files)) {
+    if (entry.dir || isJunk(name)) continue;
+    if (/^cd\//i.test(name)) hasCd = true;
+    initFs.push({ path: /^cd\//i.test(name) ? "CD/" + name.slice(3) : name, contents: await entry.async("uint8array") });
+  }
+  if (g.saves) initFs.push(g.saves instanceof Uint8Array ? g.saves : new Uint8Array(g.saves));
+  const exe = g.exe ?? guessExe(listExes(zip), g.title);
+
+  byId("playerTitle").textContent = g.title;
+  byId("player").classList.add("open");
+  const el = document.createElement("div");
+  byId("dos-host").replaceChildren(el);
+
+  let ci = null;
+  const props = Dos(el, {
+    dosboxConf: buildConf(g, exe, hasCd),
+    initFs,
+    autoStart: true,
+    theme: "dark",
+    thinSidebar: true,
+    fsChanges: { local: false },
+    onEvent: (ev, arg) => { if (ev === "ci-ready") ci = arg; },
+  });
+  try { props.setNoCloud(true); } catch {}
+  current = { g, props, getCi: () => ci };
+}
+
+async function exitGame() {
+  if (!current) return;
+  const { g, props, getCi } = current;
+  const ci = getCi();
+  byId("exitBtn").disabled = true; byId("exitBtn").textContent = "Saving…";
+  try {
+    if (ci && typeof ci.persist === "function") {
+      const changes = await ci.persist(true);
+      if (changes && changes.length) {
+        const old = (await db.get("state", g.id)) || {};
+        await patchState(g.id, { saves: await mergeSaves(await getZip(g), old.saves, changes) });
+      }
+    }
+  } catch (err) { console.warn("Saving failed", err); toast("Couldn't save progress this time"); }
+  try { await props.stop(); } catch {}
+  byId("dos-host").replaceChildren();
+  byId("player").classList.remove("open");
+  byId("exitBtn").disabled = false; byId("exitBtn").textContent = "Save & exit";
+  current = null;
+  refresh();
+}
+byId("exitBtn").onclick = exitGame;
+byId("fsBtn").onclick = () => { if (current) current.props.setFullScreen(true); };
+addEventListener("beforeunload", e => { if (current) { e.preventDefault(); e.returnValue = ""; } });
+
+refresh();
+</script>
+</body>
+</html>
