@@ -113,6 +113,36 @@ input,select{
 }
 #toast.show{ opacity:1 }
 
+/* Touch controls */
+#pad{
+  position:absolute; left:0; right:0; bottom:0; z-index:6; pointer-events:none;
+  display:none; justify-content:space-between; align-items:flex-end;
+  padding:0 14px max(14px, env(safe-area-inset-bottom)) max(48px, env(safe-area-inset-left));
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+}
+#player.pad-on #pad{ display:flex }
+#dpad{
+  pointer-events:auto; touch-action:none; position:relative;
+  width:150px; height:150px; border-radius:50%;
+  background:rgba(255,255,255,.10); border:2px solid rgba(255,255,255,.22);
+}
+#dpad span{
+  position:absolute; width:46px; height:46px; display:grid; place-items:center;
+  font-size:20px; color:rgba(255,255,255,.75); border-radius:12px;
+}
+#dpad span.on{ background:rgba(201,160,255,.55); color:#000 }
+#dpad .u{ left:52px; top:4px } #dpad .d{ left:52px; bottom:4px }
+#dpad .l{ left:4px; top:52px } #dpad .r{ right:4px; top:52px }
+#keys{ pointer-events:none; display:flex; flex-wrap:wrap-reverse; justify-content:flex-end; gap:10px; max-width:220px }
+#keys button{
+  pointer-events:auto; touch-action:none; min-width:64px; height:64px; border-radius:50%;
+  background:rgba(255,255,255,.12); border:2px solid rgba(255,255,255,.25);
+  color:#fff; font-size:13px; padding:0 10px;
+}
+#keys button.big{ min-width:84px; height:84px; font-size:15px; background:rgba(201,160,255,.35) }
+#keys button.on{ background:rgba(201,160,255,.8); color:#000 }
+#padBtn.on{ background:var(--play); color:#000 }
+
 @media (max-width:600px){
   .wrap{ margin:12px auto }
   #player .bar .hint{ display:none }
@@ -150,11 +180,16 @@ input,select{
   <div class="bar">
     <div><span class="pname" id="playerTitle"></span><span class="hint">Esc releases a captured mouse</span></div>
     <div class="actions">
+      <button id="padBtn" title="On-screen controls">🎮</button>
       <button id="fsBtn">Fullscreen</button>
       <button class="play" id="exitBtn">Save &amp; exit</button>
     </div>
   </div>
   <div id="dos-host"></div>
+  <div id="pad">
+    <div id="dpad"><span class="u">▲</span><span class="l">◀</span><span class="r">▶</span><span class="d">▼</span></div>
+    <div id="keys"></div>
+  </div>
 </div>
 
 <dialog id="editDialog">
@@ -306,7 +341,7 @@ async function loadRepoGames() {
     return {
       id: "repo:" + f.name, source: "repo", file: f.name, download: f.download, size: f.size,
       title: c.title || prettyTitle(f.name), exe: c.exe ?? null,
-      speed: c.speed || "auto", cycles: c.cycles || 3000,
+      speed: c.speed || "auto", cycles: c.cycles || 3000, buttons: c.buttons || null,
     };
   });
 }
@@ -534,7 +569,92 @@ async function play(id) {
   });
   try { props.setNoCloud(true); } catch {}
   current = { g, props, getCi: () => ci };
+  buildButtons(g);
+  setPad(padOn);
 }
+
+/* ===== On-screen controls (phones and tablets) =========================
+   Buttons per game come from games.json, e.g.
+   "buttons": [{ "label": "Jump", "key": "Space", "big": true }, { "label": "Esc", "key": "Esc" }] */
+const KEY = {
+  Space: 32, Enter: 257, Esc: 256, Tab: 258, Backspace: 259,
+  Right: 262, Left: 263, Down: 264, Up: 265, PageUp: 266, PageDown: 267,
+  Shift: 340, Ctrl: 341, Alt: 342,
+  F1: 290, F2: 291, F3: 292, F4: 293, F5: 294, F6: 295, F7: 296, F8: 297, F9: 298, F10: 299,
+};
+function keyCode(name) {
+  if (KEY[name] != null) return KEY[name];
+  if (/^[A-Za-z0-9]$/.test(name)) return name.toUpperCase().charCodeAt(0);
+  return null;
+}
+const DEFAULT_BUTTONS = [
+  { label: "Space", key: "Space", big: true },
+  { label: "Enter", key: "Enter" },
+  { label: "Esc", key: "Esc" },
+];
+const isTouch = matchMedia("(pointer: coarse)").matches;
+let padOn = isTouch;
+try { const v = localStorage.getItem("arcade-pad"); if (v !== null) padOn = v === "1"; } catch {}
+
+function sendKey(code, down) {
+  const ci = current && current.getCi();
+  if (ci && code != null) { try { ci.sendKeyEvent(code, down); } catch {} }
+}
+function setPad(on) {
+  padOn = on;
+  byId("player").classList.toggle("pad-on", on);
+  byId("padBtn").classList.toggle("on", on);
+  try { localStorage.setItem("arcade-pad", on ? "1" : "0"); } catch {}
+}
+byId("padBtn").onclick = () => setPad(!padOn);
+
+function buildButtons(g) {
+  const wrap = byId("keys");
+  wrap.replaceChildren();
+  for (const b of (g.buttons || DEFAULT_BUTTONS)) {
+    const code = keyCode(b.key);
+    if (code == null) continue;
+    const el = document.createElement("button");
+    el.textContent = b.label || b.key;
+    if (b.big) el.className = "big";
+    const up = e => { if (el.classList.contains("on")) { el.classList.remove("on"); sendKey(code, false); } };
+    el.addEventListener("pointerdown", e => { e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch {} el.classList.add("on"); sendKey(code, true); });
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+    el.addEventListener("contextmenu", e => e.preventDefault());
+    wrap.appendChild(el);
+  }
+}
+
+/* The D-pad is one touch zone: sliding your thumb works, and diagonals press two arrows. */
+(function setupDpad() {
+  const pad = byId("dpad");
+  const parts = { Up: pad.querySelector(".u"), Down: pad.querySelector(".d"), Left: pad.querySelector(".l"), Right: pad.querySelector(".r") };
+  let held = new Set(), pid = null;
+  function apply(next) {
+    for (const k of held) if (!next.has(k)) { sendKey(KEY[k], false); parts[k].classList.remove("on"); }
+    for (const k of next) if (!held.has(k)) { sendKey(KEY[k], true); parts[k].classList.add("on"); }
+    held = next;
+  }
+  function fromPoint(e) {
+    const r = pad.getBoundingClientRect();
+    const dx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
+    const dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
+    const next = new Set();
+    if (Math.hypot(dx, dy) < 0.25) return next; // dead zone in the middle
+    const t = 0.38; // how far to lean before a direction counts
+    if (dx < -t) next.add("Left"); if (dx > t) next.add("Right");
+    if (dy < -t) next.add("Up"); if (dy > t) next.add("Down");
+    return next;
+  }
+  pad.addEventListener("pointerdown", e => { e.preventDefault(); pid = e.pointerId; try { pad.setPointerCapture(pid); } catch {} apply(fromPoint(e)); });
+  pad.addEventListener("pointermove", e => { if (e.pointerId === pid) apply(fromPoint(e)); });
+  const end = e => { if (e.pointerId === pid) { pid = null; apply(new Set()); } };
+  pad.addEventListener("pointerup", end);
+  pad.addEventListener("pointercancel", end);
+  pad.addEventListener("contextmenu", e => e.preventDefault());
+  window.releaseDpad = () => apply(new Set());
+})();
 
 async function exitGame() {
   if (!current) return;
@@ -551,6 +671,7 @@ async function exitGame() {
     }
   } catch (err) { console.warn("Saving failed", err); toast("Couldn't save progress this time"); }
   try { await props.stop(); } catch {}
+  try { window.releaseDpad(); } catch {}
   byId("dos-host").replaceChildren();
   byId("player").classList.remove("open");
   byId("exitBtn").disabled = false; byId("exitBtn").textContent = "Save & exit";

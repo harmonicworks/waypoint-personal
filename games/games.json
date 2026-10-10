@@ -1,6 +1,21 @@
 {
   "games": [
-    { "file": "skyroads.zip", "title": "SkyRoads", "exe": "SKYROADS.EXE" },
-    { "file": "scorch15.zip", "title": "Scorched Earth", "exe": "SCORCH.EXE" }
+    {
+      "file": "skyroads.zip", "title": "SkyRoads", "exe": "SKYROADS.EXE",
+      "buttons": [
+        { "label": "Jump", "key": "Space", "big": true },
+        { "label": "Enter", "key": "Enter" },
+        { "label": "Esc", "key": "Esc" }
+      ]
+    },
+    {
+      "file": "scorch15.zip", "title": "Scorched Earth", "exe": "SCORCH.EXE",
+      "buttons": [
+        { "label": "Fire", "key": "Space", "big": true },
+        { "label": "Weapon", "key": "Tab" },
+        { "label": "Enter", "key": "Enter" },
+        { "label": "Esc", "key": "Esc" }
+      ]
+    }
   ]
 }

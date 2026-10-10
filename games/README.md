@@ -28,6 +28,24 @@ If a game needs a different start program or speed, add it to `games.json`:
 - `exe`: path inside the zip, e.g. `DOOM.EXE` or `GAME/START.BAT`
 - `speed`: `auto`, `fast` (3D games), `slow` (very old games), or `custom` with `"cycles": 3000`
 
+## On-screen controls (phone and tablet)
+
+On a touch screen the Arcade shows a D-pad (arrow keys) and a few buttons. The 🎮 button
+in the player bar switches them on or off. Without settings you get Space, Enter and Esc.
+To give a game its own buttons, add `buttons` to its entry in `games.json`:
+
+```json
+{ "file": "skyroads.zip", "title": "SkyRoads",
+  "buttons": [
+    { "label": "Jump", "key": "Space", "big": true },
+    { "label": "Enter", "key": "Enter" },
+    { "label": "Esc", "key": "Esc" }
+  ] }
+```
+
+Key names: `Space`, `Enter`, `Esc`, `Tab`, `Backspace`, `Up`, `Down`, `Left`, `Right`,
+`PageUp`, `PageDown`, `Shift`, `Ctrl`, `Alt`, `F1`–`F10`, or any single letter or digit.
+
 ## CD games
 
 Put the CD's files in a folder called `CD` at the top of the zip. The Arcade mounts it as drive D:.
