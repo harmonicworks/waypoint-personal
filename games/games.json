@@ -47,9 +47,9 @@
     {
       "file": "ultima4.zip",
       "title": "Ultima IV",
-      "exe": "ultima4/upgrade/ULTIMA.COM",
+      "exe": "ultima4/ULTIMA.COM",
       "speed": "custom",
-      "cycles": 5000
+      "cycles": 1000
     }
   ]
 }
