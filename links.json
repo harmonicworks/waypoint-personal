@@ -143,6 +143,12 @@
             { "label": "🕹️ DOS Arcade", "href": "arcade.html" },
             { "label": "Internet Archive: MS-DOS Shareware", "href": "https://archive.org/details/softwarelibrary_msdos_shareware" }
           ]
+        },
+        {
+          "title": "Browser Games",
+          "links": [
+            { "label": "🌿 Pajé (god game)", "href": "https://starfightrebellion.itch.io/paj" }
+          ]
         }
       ]
     }
