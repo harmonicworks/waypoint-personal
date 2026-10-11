@@ -295,16 +295,19 @@ function listExes(zip) {
     .filter(n => !zip.files[n].dir && !isJunk(n) && /\.(exe|com|bat)$/i.test(n) && !/^cd\//i.test(n))
     .sort();
 }
-function guessExe(exes, title) {
+function guessExe(exes, title, zip) {
   if (!exes.length) return "";
   const key = title.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 4);
-  const bad = /(setup|setsound|install|instal|uninst|config|deice|readme|patch|order|catalog|ipxsetup|sersetup|vendor|help|info)/i;
+  const bad = /(setup|setsound|install|instal|uninst|config|deice|readme|patch|order|catalog|ipxsetup|sersetup|vendor|help|info|regcard|dos4g|setmain)/i;
+  const helpers = new Set(["mod", "commit", "modem", "copyit", "choice", "cwsdpmi", "uvconfig", "univbe"]);
+  const sizeOf = p => { try { return zip.files[p]._data.uncompressedSize || 0; } catch { return 0; } };
   let best = exes[0], bestScore = -Infinity;
   for (const path of exes) {
     const file = path.split("/").pop().toLowerCase();
     const base = file.replace(/\.(exe|com|bat)$/, "");
     let score = 0;
-    if (bad.test(base)) score -= 10;
+    if (bad.test(base) || helpers.has(base)) score -= 10;
+    if (zip) score += Math.min(4, Math.max(0, Math.log2(sizeOf(path) / 40000))); // the game is usually the big one
     if (key && base.startsWith(key)) score += 6;
     if (key && key.startsWith(base.slice(0, 3))) score += 2;
     if (file.endsWith(".exe")) score += 2; else if (file.endsWith(".com")) score += 1;
@@ -440,15 +443,15 @@ let editing = null;
 async function openEditor(id) {
   const g = games.find(x => x.id === id);
   if (!g) return;
-  let exes = [];
-  try { exes = listExes(await getZip(g)); } catch { toast("Couldn't open this game's zip"); return; }
+  let exes = [], zip;
+  try { zip = await getZip(g); exes = listExes(zip); } catch { toast("Couldn't open this game's zip"); return; }
   editing = g;
   byId("editHeading").textContent = g.title;
   byId("editScope").textContent = g.source === "repo"
     ? "Changes here apply to this device only. For every device, edit games/games.json in the repo."
     : "This game lives only on this device.";
   byId("fTitle").value = g.title;
-  const cur = g.exe ?? guessExe(exes, g.title);
+  const cur = g.exe ?? guessExe(exes, g.title, zip);
   byId("fExe").innerHTML = exes.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("") + `<option value="">Just open the DOS prompt</option>`;
   byId("fExe").value = exes.includes(cur) ? cur : "";
   byId("fSpeed").value = g.speed || "auto";
@@ -556,7 +559,7 @@ async function play(id) {
     initFs.push({ path: /^cd\//i.test(name) ? "CD/" + name.slice(3) : name, contents: await entry.async("uint8array") });
   }
   if (g.saves) initFs.push(g.saves instanceof Uint8Array ? g.saves : new Uint8Array(g.saves));
-  const exe = g.exe ?? guessExe(listExes(zip), g.title);
+  const exe = g.exe ?? guessExe(listExes(zip), g.title, zip);
 
   byId("playerTitle").textContent = g.title;
   byId("player").classList.add("open");
